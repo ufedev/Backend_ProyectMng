@@ -10,7 +10,7 @@ app.use(express.json())
 dotenv.config()
 conectarDB()
 
-const whitelist = ["http://localhost:3000"]
+const whitelist = [process.env.FRONT_URL]
 const corsOptions = {
   origin: function (origin, callback) {
     if (whitelist.includes(origin)) {
@@ -21,14 +21,50 @@ const corsOptions = {
   },
 }
 
-app.use(cors())
+app.use(cors(corsOptions))
 //Routings
 
 app.use("/api/usuarios", usuariosRouter)
 app.use("/api/proyectos", proyectosRouter)
 app.use("/api/tareas", tareasRouter)
 //Servidor
-const PORT = process.env.PORT || 4000
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 8000
+const servidor = app.listen(PORT, () => {
   console.log(`servidor corriendo en puerto: ${PORT}`)
+})
+
+// import
+
+import { Server } from "socket.io"
+
+const io = new Server(servidor, {
+  pingTimeout: 60000,
+  cors: {
+    origin: process.env.FRONT_URL,
+  },
+})
+
+io.on("connection", (socket) => {
+  socket.on("abrir proyecto", (id_proyecto) => {
+    socket.join(id_proyecto) // Join crea una sala unica para este proyecto.. en este caso...
+  })
+  socket.on("nueva tarea", (tarea) => {
+    const proyecto = tarea.proyecto
+    socket.to(proyecto).emit("tarea agregada", tarea)
+  })
+
+  socket.on("editar tarea", (tarea) => {
+    const proyecto = tarea.proyecto._id
+    socket.to(proyecto).emit("tarea editada", tarea)
+  })
+
+  socket.on("eliminar tarea", (tarea) => {
+    const proyecto = tarea.proyecto._id
+    socket.to(proyecto).emit("tarea eliminada", tarea)
+  })
+
+  socket.on("cambiar estado", (tarea) => {
+    const proyecto = tarea.proyecto._id
+    socket.to(proyecto).emit("estado cambiado", tarea)
+  })
 })

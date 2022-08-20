@@ -30,6 +30,10 @@ const tareasSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Proyectos",
     },
+    completado: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Usuarios",
+    },
   },
   { timestamps: true }
 )

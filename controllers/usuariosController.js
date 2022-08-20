@@ -1,6 +1,7 @@
 import Usuarios from "../models/Usuarios.js"
 import generarId from "../helpers/generarId.js"
 import generarJWT from "../helpers/generarJWT.js"
+import { emailConfirmar, emailRestablecer } from "../helpers/emails.js"
 async function registrar(req, res) {
   //evitar duplicación
   const { email } = req.body
@@ -14,6 +15,11 @@ async function registrar(req, res) {
     const usuario = new Usuarios(req.body)
     usuario.token = generarId()
     await usuario.save()
+    emailConfirmar({
+      nombre: usuario.nombre,
+      email: usuario.email,
+      token: usuario.token,
+    })
     res.json({ msg: "Usuario creado correctamente, Verifique su Email" })
   } catch (e) {}
 }
@@ -74,12 +80,17 @@ async function olvidePassword(req, res) {
 
   if (!usuario) {
     const error = new Error("El usuario no existe")
-    return res.status(404).json({ msg: error.message })
+    return res.status(401).json({ msg: error.message })
   }
 
   try {
     usuario.token = generarId()
     await usuario.save()
+    emailRestablecer({
+      nombre: usuario.nombre,
+      email: usuario.email,
+      token: usuario.token,
+    })
     res.json({ msg: "Se ha enviado un correo a su Email" })
   } catch (e) {
     console.log(e)
@@ -101,19 +112,20 @@ async function confirmarToken(req, res) {
 async function cambiarPassword(req, res) {
   const { token } = req.params
   const { password } = req.body
+  try {
+    const user = await Usuarios.findOne({ token })
 
-  const user = await Usuarios.findOne({ token })
-  if (user) {
-    try {
+    if (user) {
       user.password = password
       user.token = ""
       await user.save()
       res.json({ msg: "Contraseña modificada correctamente" })
-    } catch (error) {
-      console.log(error)
+    } else {
+      res.status(403).json({ msg: "Token no válido" })
     }
-  } else {
-    res.status(403).json({ msg: "Token no válido" })
+  } catch (e) {
+    const error = new Error("Token no válido")
+    res.status(403).json({ msg: error.message })
   }
 }
 

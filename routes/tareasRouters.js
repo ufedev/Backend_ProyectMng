@@ -4,7 +4,7 @@ import {
   obtenerTarea,
   eliminarTarea,
   actualizarTarea,
-  cambiarEstado,
+  actualizarEstadoTarea,
 } from "../controllers/tareasController.js"
 
 import checkAuth from "../middleware/checkAuth.js"
@@ -19,5 +19,5 @@ router
   .put(checkAuth, actualizarTarea)
   .delete(checkAuth, eliminarTarea)
 
-router.post("/estado/:id", cambiarEstado)
+router.get("/estado/:id", checkAuth, actualizarEstadoTarea)
 export default router
